@@ -1,502 +1,70 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ethers } from "ethers";
-import Image from "next/image";
-import VotingActions from "./VotingActions";
-import styles from "./page.module.css";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Wallet, Vote, BarChart3, Clock, Users, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {ethers} from "ethers";
+import VotingActions from "@/app/VotingActions";
+import CONTRACT_ABI from "@/contracts/VotingContract.json";
 
-const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Adresse de votre contrat
-const CONTRACT_ABI = [
-  {
-    "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnableInvalidOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "OwnableUnauthorizedAccount",
-    "type": "error"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "previousOwner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnershipTransferred",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "ProposalRegistered",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "oldQuorum",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newQuorum",
-        "type": "uint256"
-      }
-    ],
-    "name": "QuorumUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "voter",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "oldProposalId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newProposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "VoteModified",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "voter",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "Voted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "voterAddress",
-        "type": "address"
-      }
-    ],
-    "name": "VoterRegistered",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "enum Voting.WorkflowStatus",
-        "name": "previousStatus",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "enum Voting.WorkflowStatus",
-        "name": "newStatus",
-        "type": "uint8"
-      }
-    ],
-    "name": "WorkflowStatusChange",
-    "type": "event"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_voter",
-        "type": "address"
-      }
-    ],
-    "name": "addVoter",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "endProposalsRegistration",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "endVotingSession",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getCurrentParticipation",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getProposalsCount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_voter",
-        "type": "address"
-      }
-    ],
-    "name": "getVoterInfo",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "hasVoted",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "votedProposalId",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getWhitelist",
-    "outputs": [
-      {
-        "internalType": "address[]",
-        "name": "",
-        "type": "address[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getWinningProposal",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "proposals",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "voteCount",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "quorumPercentage",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_quorumPercentage",
-        "type": "uint256"
-      }
-    ],
-    "name": "setQuorum",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "startProposalsRegistration",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "startVotingSession",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_description",
-        "type": "string"
-      }
-    ],
-    "name": "submitProposal",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "tallyVotes",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "vote",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "voters",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "isRegistered",
-        "type": "bool"
-      },
-      {
-        "internalType": "bool",
-        "name": "hasVoted",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "votedProposalId",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "votersCount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "winningProposalId",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "workflowStatus",
-    "outputs": [
-      {
-        "internalType": "enum Voting.WorkflowStatus",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  }
-];
+// Les constantes sont préservées comme demandé
+const CONTRACT_ADDRESS = "0x0B306BF915C4d645ff596e518fAf3F9669b97016"; // Adresse de votre contrat
 
 export default function Home() {
+  const router = useRouter();
   const [isConnected, setIsConnected] = useState(false);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [proposalsCount, setProposalsCount] = useState<number | null>(null);
   const [workflowStatus, setWorkflowStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [account, setAccount] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fonction pour se connecter au contrat
   const connectToContract = async () => {
     try {
+      setIsLoading(true);
       if (!window.ethereum) {
         setError("MetaMask n'est pas installé.");
+        setIsLoading(false);
         return;
       }
 
-      // Demander à l'utilisateur de se connecter à MetaMask
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contractInstance = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-      setContract(contractInstance);
-      setAccount(accounts[0]);  // On enregistre l'adresse de l'utilisateur connecté
+      try {
+        // Essayer d'appeler une fonction du contrat
+        const status = await contractInstance.workflowStatus();
+        console.log("Statut du workflow:", status);
+        setWorkflowStatus(status.toString());
+      } catch (err) {
+        console.error("Erreur lors de l'appel à workflowStatus:", err);
+      }
 
-      const count = await contractInstance.getProposalsCount();
-      const status = await contractInstance.workflowStatus();
-      setProposalsCount(Number(count));
-      setWorkflowStatus(status.toString());
+      try {
+        const count = await contractInstance.getProposalsCount();
+        console.log("Nombre de propositions:", count);
+        setProposalsCount(Number(count));
+      } catch (err) {
+        console.error("Erreur lors de l'appel à getProposalsCount:", err);
+        setProposalsCount(0);
+      }
+
+      setContract(contractInstance);
+      setAccount(accounts[0]);
       setIsConnected(true);
-    } catch (err: any) {
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Erreur complète:", err);
       setError(err.message || "Une erreur est survenue.");
+      setIsLoading(false);
     }
   };
 
@@ -524,56 +92,264 @@ export default function Home() {
     setError(null);
   };
 
+  // Fonction pour obtenir le statut du workflow en texte
+  const getWorkflowStatusText = (status: string | null) => {
+    if (status === null) return "Inconnu";
+
+    switch (status) {
+      case "0": return "Enregistrement des électeurs";
+      case "1": return "Enregistrement des propositions";
+      case "2": return "Fin de l'enregistrement des propositions";
+      case "3": return "Session de vote";
+      case "4": return "Fin de la session de vote";
+      case "5": return "Votes comptabilisés";
+      default: return "Statut inconnu";
+    }
+  };
+
+  // Fonction pour obtenir la couleur du statut
+  const getStatusColor = (status: string | null) => {
+    if (status === null) return "bg-gray-500";
+
+    switch (status) {
+      case "0": return "bg-purple-500";
+      case "1": return "bg-blue-500";
+      case "2": return "bg-yellow-500";
+      case "3": return "bg-green-500";
+      case "4": return "bg-orange-500";
+      case "5": return "bg-red-500";
+      default: return "bg-gray-500";
+    }
+  };
+
+  // Fonction pour formater l'adresse Ethereum
+  const formatAddress = (address: string | null) => {
+    if (!address) return "";
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <h1 className={styles.title}>Gestion du processus de vote</h1>
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <header className="flex flex-col md:flex-row justify-between items-center mb-12">
+            <div className="flex items-center mb-4 md:mb-0">
+              <Vote className="h-10 w-10 mr-3 text-green-400" />
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+                Blockchain_Vote
+              </h1>
+            </div>
 
-        {isConnected ? (
-          <div className={styles.container}>
-            <p className={styles.success}>Connexion réussie au contrat !</p>
-            <p>Adresse du compte connecté : {account}</p>
-            <p>Nombre de propositions : {proposalsCount}</p>
-            <p>État du workflow : {workflowStatus}</p>
+            <div className="flex items-center space-x-4">
+              {isConnected ? (
+                  <div className="flex items-center">
+                    <Badge variant="outline" className="mr-2 px-3 py-1 border-green-500 text-green-400 flex items-center">
+                      <div className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                      Connecté
+                    </Badge>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDisconnect}
+                        className="border-red-500 text-red-400 hover:bg-red-950 hover:text-red-300"
+                    >
+                      Déconnecter
+                    </Button>
+                  </div>
+              ) : (
+                  <Button
+                      onClick={() => {
+                        setError(null);
+                        connectToContract();
+                      }}
+                      disabled={isLoading}
+                      className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white"
+                  >
+                    {isLoading ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          Connexion...
+                        </div>
+                    ) : (
+                        <div className="flex items-center">
+                          <Wallet className="mr-2 h-4 w-4" />
+                          Connecter MetaMask
+                        </div>
+                    )}
+                  </Button>
+              )}
+            </div>
+          </header>
 
-            {/* Intégration du composant VotingActions */}
-            <VotingActions contract={contract} currentAccount={account} />
-            
-            {/* Bouton de déconnexion */}
-            <button onClick={handleDisconnect} className={styles.disconnectButton}>Se déconnecter</button>
+          {/* Main Content */}
+          <main className="space-y-8">
+            {error && (
+                <Card className="border-red-500 bg-red-950/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-red-400 flex items-center">
+                      <AlertCircle className="mr-2 h-5 w-5" />
+                      Erreur
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p>{error}</p>
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setError(null);
+                          connectToContract();
+                        }}
+                        className="border-red-500 text-red-400 hover:bg-red-950 hover:text-red-300"
+                    >
+                      Réessayer
+                    </Button>
+                  </CardFooter>
+                </Card>
+            )}
+
+            {isConnected && (
+                <>
+                  {/* Status Card */}
+                  <VotingActions contract={contract} currentAccount={account}/>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card className="border-green-500/30 bg-black/40 backdrop-blur-sm">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-green-400 flex items-center">
+                          <Users className="mr-2 h-5 w-5" />
+                          Compte
+                        </CardTitle>
+                        <CardDescription>Votre adresse Ethereum</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between">
+                          <code className="bg-gray-800 px-2 py-1 rounded text-sm break-all">
+                            {account}
+                          </code>
+                          <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigator.clipboard.writeText(account || "")}
+                              className="text-green-400 hover:text-green-300 hover:bg-green-950/30"
+                          >
+                            Copier
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-blue-500/30 bg-black/40 backdrop-blur-sm">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-blue-400 flex items-center">
+                          <BarChart3 className="mr-2 h-5 w-5" />
+                          Propositions
+                        </CardTitle>
+                        <CardDescription>Nombre de propositions enregistrées</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-4xl font-bold text-blue-400">
+                          {proposalsCount !== null ? proposalsCount : "..."}
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push('/proposals')}
+                            className="border-blue-500/50 text-blue-400 hover:bg-blue-950/30"
+                        >
+                          Voir les propositions
+                        </Button>
+                      </CardFooter>
+                    </Card>
+
+                    <Card className="border-purple-500/30 bg-black/40 backdrop-blur-sm">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-purple-400 flex items-center">
+                          <Clock className="mr-2 h-5 w-5" />
+                          Statut
+                        </CardTitle>
+                        <CardDescription>État actuel du processus de vote</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded-full mr-2 ${getStatusColor(workflowStatus)}`}></div>
+                          <div className="text-lg font-medium">
+                            {getWorkflowStatusText(workflowStatus)}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Actions Card */}
+                  <Card className="border-cyan-500/30 bg-black/40 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="text-cyan-400 flex items-center">
+                        <Vote className="mr-2 h-5 w-5" />
+                        Actions de vote
+                      </CardTitle>
+                      <CardDescription>
+                        Gérez vos actions en fonction du statut actuel du processus
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {contract && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Link href="/vote">
+                              <Button className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600">
+                                <Vote className="mr-2 h-4 w-4" />
+                                Voter
+                              </Button>
+                            </Link>
+                            <Link href="/proposals">
+                              <Button variant="outline" className="w-full border-cyan-500/50 text-cyan-400 hover:bg-cyan-950/30">
+                                <BarChart3 className="mr-2 h-4 w-4" />
+                                Voir les propositions
+                              </Button>
+                            </Link>
+                          </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+            )}
+
+            {!isConnected && !error && !isLoading && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="text-center mb-8">
+                    <h2 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+                      Bienvenue sur Blockchain_Vote
+                    </h2>
+                    <p className="text-gray-400 max-w-md mx-auto">
+                      Connectez-vous avec MetaMask pour accéder à la plateforme de vote décentralisée.
+                    </p>
+                  </div>
+                  <Button
+                      onClick={() => {
+                        setError(null);
+                        connectToContract();
+                      }}
+                      className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white"
+                      size="lg"
+                  >
+                    <Wallet className="mr-2 h-5 w-5" />
+                    Connecter MetaMask
+                  </Button>
+                </div>
+            )}
+          </main>
+        </div>
+
+        {/* Footer */}
+        <footer className="mt-16 py-6 border-t border-gray-800">
+          <div className="container mx-auto px-4 text-center text-gray-500">
+            <p>Blockchain_Vote - Plateforme de vote décentralisée &copy; {new Date().getFullYear()}</p>
           </div>
-        ) : error ? (
-          <p className={styles.error}>Erreur : {error}</p>
-        ) : (
-          <p>Connexion en cours...</p>
-        )}
-
-        {!isConnected && !error && (
-          <button
-            onClick={() => {
-              setError(null); // Réinitialise l'erreur avant de tenter de se reconnecter
-              connectToContract();
-            }}
-            className={styles.connectButton}
-          >
-            Se connecter à MetaMask
-          </button>
-        )}
-      </main>
-
-      <footer className={styles.footer}>
-        <a href="https://nextjs.org/learn" target="_blank" rel="noopener noreferrer">
-          Learn Next.js
-        </a>
-      </footer>
-    </div>
+        </footer>
+      </div>
   );
 }
