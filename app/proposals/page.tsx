@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ethers } from "ethers";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, BarChart3, AlertCircle, Loader2, Plus, CheckCircle2 } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import {useState, useEffect} from "react";
+import {ethers} from "ethers";
+import {useRouter} from "next/navigation";
+import {ArrowLeft, BarChart3, AlertCircle, Loader2, Plus, CheckCircle2} from 'lucide-react';
+import {Button} from "@/components/ui/button";
+import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
+import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
+import {Input} from "@/components/ui/input";
+import {Badge} from "@/components/ui/badge";
+import {Progress} from "@/components/ui/progress";
 import CONTRACT_ABI from "@/contracts/VotingContract.json";
 
-// Les constantes sont préservées comme demandé
-const CONTRACT_ADDRESS = "0x0B306BF915C4d645ff596e518fAf3F9669b97016";
+const CONTRACT_ADDRESS = "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F"; // Adresse de votre contrat
 
 
 export default function ProposalsPage() {
@@ -31,7 +30,6 @@ export default function ProposalsPage() {
     const [votersCount, setVotersCount] = useState<number>(0);
     const [totalVotes, setTotalVotes] = useState<number>(0);
 
-    // Fonction pour se connecter au contrat
     const connectToContract = async () => {
         try {
             setIsLoading(true);
@@ -41,7 +39,7 @@ export default function ProposalsPage() {
                 return;
             }
 
-            const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+            const accounts = await window.ethereum.request({method: "eth_requestAccounts"});
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
             const contractInstance = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
@@ -49,15 +47,12 @@ export default function ProposalsPage() {
             setContract(contractInstance);
             setAccount(accounts[0]);
 
-            // Récupérer le statut du workflow
             const status = await contractInstance.workflowStatus();
             setWorkflowStatus(status.toString());
 
-            // Récupérer le nombre d'électeurs
             const voters = await contractInstance.votersCount();
             setVotersCount(Number(voters));
 
-            // Récupérer les propositions
             const proposalsCount = await contractInstance.getProposalsCount();
             const proposalsArray = [];
             let votes = 0;
@@ -83,10 +78,9 @@ export default function ProposalsPage() {
         }
     };
 
-    // Vérifier si MetaMask est déjà connecté au démarrage
     useEffect(() => {
         if (window.ethereum) {
-            window.ethereum.request({ method: "eth_accounts" }).then((accounts: string[]) => {
+            window.ethereum.request({method: "eth_accounts"}).then((accounts: string[]) => {
                 if (accounts.length > 0) {
                     setAccount(accounts[0]);
                     connectToContract();
@@ -97,7 +91,6 @@ export default function ProposalsPage() {
         }
     }, []);
 
-    // Fonction pour soumettre une proposition
     const handleSubmitProposal = async () => {
         if (!contract || !newProposal.trim()) return;
 
@@ -109,7 +102,6 @@ export default function ProposalsPage() {
             const tx = await contract.submitProposal(newProposal);
             await tx.wait();
 
-            // Mettre à jour la liste des propositions
             const proposalsCount = await contract.getProposalsCount();
             const proposal = await contract.proposals(proposalsCount - 1);
 
@@ -128,16 +120,14 @@ export default function ProposalsPage() {
         }
     };
 
-    // Vérifier si l'utilisateur peut soumettre une proposition
     const canSubmitProposal = () => {
         return (
             isConnected &&
-            workflowStatus === "1" && // Statut "Enregistrement des propositions"
+            workflowStatus === "1" &&
             newProposal.trim() !== ""
         );
     };
 
-    // Fonction pour obtenir le pourcentage de votes pour une proposition
     const getVotePercentage = (voteCount: number) => {
         if (totalVotes === 0) return 0;
         return (voteCount / totalVotes) * 100;
@@ -146,14 +136,13 @@ export default function ProposalsPage() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
             <div className="container mx-auto px-4 py-8">
-                {/* Header */}
                 <header className="flex items-center mb-8">
                     <Button
                         variant="ghost"
                         onClick={() => router.push('/')}
                         className="mr-4 text-gray-400 hover:text-white"
                     >
-                        <ArrowLeft className="h-5 w-5 mr-1" />
+                        <ArrowLeft className="h-5 w-5 mr-1"/>
                         Retour
                     </Button>
                     <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
@@ -161,11 +150,10 @@ export default function ProposalsPage() {
                     </h1>
                 </header>
 
-                {/* Main Content */}
                 <main className="space-y-8">
                     {error && (
                         <Alert variant="destructive" className="border-red-500 bg-red-950/20">
-                            <AlertCircle className="h-4 w-4" />
+                            <AlertCircle className="h-4 w-4"/>
                             <AlertTitle>Erreur</AlertTitle>
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
@@ -173,7 +161,7 @@ export default function ProposalsPage() {
 
                     {success && (
                         <Alert className="border-green-500 bg-green-950/20">
-                            <CheckCircle2 className="h-4 w-4 text-green-400" />
+                            <CheckCircle2 className="h-4 w-4 text-green-400"/>
                             <AlertTitle className="text-green-400">Succès</AlertTitle>
                             <AlertDescription>{success}</AlertDescription>
                         </Alert>
@@ -182,13 +170,12 @@ export default function ProposalsPage() {
                     {isLoading ? (
                         <Card className="border-blue-500/30 bg-black/40 backdrop-blur-sm">
                             <CardContent className="flex items-center justify-center py-12">
-                                <Loader2 className="h-8 w-8 animate-spin text-blue-400 mr-2" />
+                                <Loader2 className="h-8 w-8 animate-spin text-blue-400 mr-2"/>
                                 <p>Chargement des propositions...</p>
                             </CardContent>
                         </Card>
                     ) : isConnected ? (
                         <>
-                            {/* Formulaire de soumission de proposition */}
                             {workflowStatus === "1" && (
                                 <Card className="border-purple-500/30 bg-black/40 backdrop-blur-sm">
                                     <CardHeader>
@@ -215,12 +202,12 @@ export default function ProposalsPage() {
                                         >
                                             {isSubmitting ? (
                                                 <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                                                     Soumission...
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Plus className="mr-2 h-4 w-4" />
+                                                    <Plus className="mr-2 h-4 w-4"/>
                                                     Soumettre
                                                 </>
                                             )}
@@ -229,13 +216,12 @@ export default function ProposalsPage() {
                                 </Card>
                             )}
 
-                            {/* Liste des propositions */}
                             <Card className="border-blue-500/30 bg-black/40 backdrop-blur-sm">
                                 <CardHeader>
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <CardTitle className="text-blue-400 flex items-center">
-                                                <BarChart3 className="mr-2 h-5 w-5" />
+                                                <BarChart3 className="mr-2 h-5 w-5"/>
                                                 Liste des propositions
                                             </CardTitle>
                                             <CardDescription>
@@ -273,7 +259,8 @@ export default function ProposalsPage() {
                                                     <div className="flex justify-between items-center mb-2">
                                                         <h3 className="font-medium text-lg">{proposal.description}</h3>
                                                         {(workflowStatus === "3" || workflowStatus === "4" || workflowStatus === "5") && (
-                                                            <Badge variant="secondary" className="bg-blue-950/30 text-blue-400">
+                                                            <Badge variant="secondary"
+                                                                   className="bg-blue-950/30 text-blue-400">
                                                                 {proposal.voteCount} vote(s)
                                                             </Badge>
                                                         )}
@@ -287,7 +274,8 @@ export default function ProposalsPage() {
                                                                 indicatorClassName="bg-gradient-to-r from-blue-500 to-purple-500"
                                                             />
                                                             <div className="text-xs text-gray-400 text-right">
-                                                                {getVotePercentage(proposal.voteCount).toFixed(1)}% des votes
+                                                                {getVotePercentage(proposal.voteCount).toFixed(1)}% des
+                                                                votes
                                                             </div>
                                                         </div>
                                                     )}
@@ -296,7 +284,7 @@ export default function ProposalsPage() {
                                         </div>
                                     ) : (
                                         <div className="text-center py-8 text-gray-400">
-                                            <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                            <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50"/>
                                             <p>Aucune proposition n'a encore été soumise.</p>
                                         </div>
                                     )}
@@ -329,7 +317,7 @@ export default function ProposalsPage() {
                                 >
                                     {isLoading ? (
                                         <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                                             Connexion...
                                         </>
                                     ) : (

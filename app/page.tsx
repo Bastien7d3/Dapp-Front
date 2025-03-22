@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Wallet, Vote, BarChart3, Clock, Users, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Wallet, Vote, BarChart3, Clock, Users, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +11,7 @@ import {ethers} from "ethers";
 import VotingActions from "@/app/VotingActions";
 import CONTRACT_ABI from "@/contracts/VotingContract.json";
 
-// Les constantes sont préservées comme demandé
-const CONTRACT_ADDRESS = "0x0B306BF915C4d645ff596e518fAf3F9669b97016"; // Adresse de votre contrat
+const CONTRACT_ADDRESS = "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F"; // Adresse de votre contrat
 
 export default function Home() {
   const router = useRouter();
@@ -24,7 +23,6 @@ export default function Home() {
   const [account, setAccount] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fonction pour se connecter au contrat
   const connectToContract = async () => {
     try {
       setIsLoading(true);
@@ -40,9 +38,7 @@ export default function Home() {
       const contractInstance = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
       try {
-        // Essayer d'appeler une fonction du contrat
         const status = await contractInstance.workflowStatus();
-        console.log("Statut du workflow:", status);
         setWorkflowStatus(status.toString());
       } catch (err) {
         console.error("Erreur lors de l'appel à workflowStatus:", err);
@@ -50,7 +46,6 @@ export default function Home() {
 
       try {
         const count = await contractInstance.getProposalsCount();
-        console.log("Nombre de propositions:", count);
         setProposalsCount(Number(count));
       } catch (err) {
         console.error("Erreur lors de l'appel à getProposalsCount:", err);
@@ -68,7 +63,6 @@ export default function Home() {
     }
   };
 
-  // Vérifier si MetaMask est déjà connecté au démarrage
   useEffect(() => {
     if (window.ethereum) {
       window.ethereum.request({ method: "eth_accounts" }).then((accounts: string[]) => {
@@ -79,10 +73,9 @@ export default function Home() {
       });
     }
 
-    connectToContract();  // Appel initial pour tenter la connexion au contrat
+    connectToContract();
   }, []);
 
-  // Déconnexion de MetaMask
   const handleDisconnect = () => {
     setAccount(null);
     setIsConnected(false);
@@ -92,7 +85,6 @@ export default function Home() {
     setError(null);
   };
 
-  // Fonction pour obtenir le statut du workflow en texte
   const getWorkflowStatusText = (status: string | null) => {
     if (status === null) return "Inconnu";
 
@@ -107,7 +99,6 @@ export default function Home() {
     }
   };
 
-  // Fonction pour obtenir la couleur du statut
   const getStatusColor = (status: string | null) => {
     if (status === null) return "bg-gray-500";
 
@@ -122,7 +113,6 @@ export default function Home() {
     }
   };
 
-  // Fonction pour formater l'adresse Ethereum
   const formatAddress = (address: string | null) => {
     if (!address) return "";
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
@@ -131,7 +121,6 @@ export default function Home() {
   return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
         <div className="container mx-auto px-4 py-8">
-          {/* Header */}
           <header className="flex flex-col md:flex-row justify-between items-center mb-12">
             <div className="flex items-center mb-4 md:mb-0">
               <Vote className="h-10 w-10 mr-3 text-green-400" />
@@ -181,7 +170,6 @@ export default function Home() {
             </div>
           </header>
 
-          {/* Main Content */}
           <main className="space-y-8">
             {error && (
                 <Card className="border-red-500 bg-red-950/20">
@@ -212,7 +200,6 @@ export default function Home() {
 
             {isConnected && (
                 <>
-                  {/* Status Card */}
                   <VotingActions contract={contract} currentAccount={account}/>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -285,7 +272,6 @@ export default function Home() {
                     </Card>
                   </div>
 
-                  {/* Actions Card */}
                   <Card className="border-cyan-500/30 bg-black/40 backdrop-blur-sm">
                     <CardHeader>
                       <CardTitle className="text-cyan-400 flex items-center">
@@ -344,7 +330,6 @@ export default function Home() {
           </main>
         </div>
 
-        {/* Footer */}
         <footer className="mt-16 py-6 border-t border-gray-800">
           <div className="container mx-auto px-4 text-center text-gray-500">
             <p>Blockchain_Vote - Plateforme de vote décentralisée &copy; {new Date().getFullYear()}</p>
